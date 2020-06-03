@@ -10,7 +10,7 @@ import tempfile
 
 import click
 import json
-from utils.process import run
+from utils_core.process import run
 
 from workspace.commands import AbstractCommand
 from workspace.commands.helpers import expand_product_groups, ToxIni
@@ -21,7 +21,7 @@ from workspace.utils import log_exception, parallel_call
 
 log = logging.getLogger(__name__)
 
-TEST_RE = re.compile('\d+ (?:passed|error|failed|xfailed).* in [\d\.]+ seconds')
+TEST_RE = re.compile(r'\d+ (?:passed|error|failed|xfailed).* in [\d\.]+ seconds')
 BUILD_RE = re.compile('BUILD SUCCESSFUL')
 
 
@@ -144,8 +144,8 @@ class Test(AbstractCommand):
                 else:
                     append_summary('No test summary found in output', name)
 
-                summary_lines = [l for l in product_tests[name].replace('xfailed', '').split('\n')
-                                 if l.startswith('===') and 'warnings summary' not in l]
+                summary_lines = [line for line in product_tests[name].replace('xfailed', '').split('\n')
+                                 if line.startswith('===') and 'warnings summary' not in line]
                 if not len(summary_lines) == 2 or 'failed' in summary_lines[-1] or 'error' in summary_lines[-1]:
                     success = False
 
@@ -215,10 +215,11 @@ class Test(AbstractCommand):
             self.repo = project_path()
 
         # Strip out venv bin path to python to avoid issues with it being removed when running tox
-        if 'VIRTUAL_ENV' in os.environ:
-            venv_bin = os.environ['VIRTUAL_ENV']
-            os.environ['PATH'] = os.pathsep.join([p for p in os.environ['PATH'].split(os.pathsep)
-                                                  if os.path.exists(p) and not p.startswith(venv_bin)])
+        environ = os.environ.copy()
+        if 'VIRTUAL_ENV' in environ:
+            venv_bin = os.environ.pop('VIRTUAL_ENV')
+            environ['PATH'] = os.pathsep.join([p for p in environ['PATH'].split(os.pathsep)
+                                               if os.path.exists(p) and not p.startswith(venv_bin)])
 
         envs = []
         files = []
@@ -296,7 +297,8 @@ class Test(AbstractCommand):
             if self.install_only:
                 cmd.append('--notest')
 
-            output = run(cmd, cwd=self.repo, raises=not self.return_output, silent=self.silent, return_output=self.return_output)
+            output = run(cmd, cwd=self.repo, raises=not self.return_output, silent=self.silent,
+                         return_output=self.return_output, env=environ)
 
             if not output:
                 if self.return_output:
@@ -354,7 +356,7 @@ class Test(AbstractCommand):
                                 full_command += ' ' + pytest_args
                         activate = '. ' + os.path.join(envdir, 'bin', 'activate')
                         output = run(activate + '; ' + full_command, shell=True, cwd=self.repo, raises=False, silent=self.silent,
-                                     return_output=self.return_output)
+                                     return_output=self.return_output, env=environ)
                         if not output:
                             if self.return_output:
                                 return False
@@ -381,7 +383,7 @@ class Test(AbstractCommand):
         script_bin = tox.bindir(env)
 
         if os.path.exists(script_bin):
-            name_version_re = re.compile('%s==[0-9\.]+' % name)
+            name_version_re = re.compile(r'%s==[0-9\.]+' % name)
             removed_from = []
             for script in os.listdir(script_bin):
                 script_path = os.path.join(script_bin, script)
@@ -490,11 +492,11 @@ else:
             product_dependencies[dep] = path
 
         available_products = [os.path.basename(r) for r in product_repos()]
-        libs = [d for d in editable_products if d in available_products and d in product_dependencies and
-                tox.envdir(env) in product_dependencies[d]]
+        libs = [d for d in editable_products if d in available_products and d in product_dependencies
+                and tox.envdir(env) in product_dependencies[d]]
 
-        already_editable = [d for d in editable_products if d in product_dependencies and
-                            tox.envdir(env) not in product_dependencies[d]]
+        already_editable = [d for d in editable_products if d in product_dependencies
+                            and tox.envdir(env) not in product_dependencies[d]]
         for lib in already_editable:
             click.echo('{} is already installed in editable mode.'.format(lib))
 

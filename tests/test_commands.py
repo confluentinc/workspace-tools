@@ -77,13 +77,13 @@ def test_cleanrun(wst):
         run('ls -l')
         wst('clean')
 
-        assert_list_equals_without_Order(os.listdir(), ['old_repo_dirty', 'repo', 'file'])
+        assert sorted(os.listdir()) == ['file', 'old_repo_dirty', 'repo']
 
     with temp_git_repo():
         run('touch hello.py hello.pyc')
         wst('clean')
 
-        assert_list_equals_without_Order(os.listdir(), ['.git', 'hello.py'])
+        assert sorted(os.listdir()) == ['.git', 'hello.py']
 
 
 def test_commit(wst):
@@ -121,7 +121,7 @@ def test_test(wst, monkeypatch):
         del os.environ['PYTESTARGS']
 
     with temp_dir() as cwd:
-        monkeypatch.setenv('HOME', cwd)  # tox creates virtualenvs in ~/.virtualenvs
+        monkeypatch.setenv('HOME', str(cwd))  # tox creates virtualenvs in ~/.virtualenvs
 
         with pytest.raises(SystemExit):
             wst('test')

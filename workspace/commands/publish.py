@@ -17,8 +17,8 @@ from workspace.scm import repo_check, repo_path, commit_logs, extract_commit_msg
 log = logging.getLogger(__name__)
 new_version = None  # Doesn't work if it is in bump_version
 PUBLISH_VERSION_PREFIX = 'Publish version '
-IGNORE_CHANGE_RE = re.compile('^(?:Update changelog|Fix tests?)\s*$', flags=re.IGNORECASE)
-VERSION_RE = re.compile('version\s*=\s*([\'"])(.*)[\'"]')
+IGNORE_CHANGE_RE = re.compile(r'^(?:Update changelog|Fix tests?)\s*$', flags=re.IGNORECASE)
+VERSION_RE = re.compile(r'version\s*=\s*([\'"])(.*)[\'"]')
 
 
 class Publish(AbstractCommand):

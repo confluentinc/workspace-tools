@@ -3,7 +3,10 @@ import shlex
 from mock import Mock
 import pytest
 
+from workspace.config import config
 from workspace.controller import Commander
+
+config._last_source = None  # Don't read from user config for tests
 
 
 @pytest.fixture()
@@ -17,7 +20,7 @@ def wst(monkeypatch):
 @pytest.fixture()
 def mock_run(monkeypatch):
     r = Mock()
-    monkeypatch.setattr('utils.process.run', r)
+    monkeypatch.setattr('utils_core.process.run', r)
     monkeypatch.setattr('workspace.utils.run', r)
     monkeypatch.setattr('workspace.scm.run', r)
     monkeypatch.setattr('workspace.commands.test.run', r)
